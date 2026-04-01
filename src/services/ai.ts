@@ -2,7 +2,10 @@ import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 import { SongData } from "../types";
 
 const getAI = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Try to get from localStorage first (for manual entry fallback)
+  const manualKey = typeof window !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY_MANUAL') : null;
+  const apiKey = manualKey || process.env.GEMINI_API_KEY;
+  
   if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
   return new GoogleGenAI({ apiKey });
 };

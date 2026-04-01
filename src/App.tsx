@@ -79,16 +79,21 @@ export default function App() {
   const [history, setHistory] = useState<SongData[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [hasKey, setHasKey] = useState(false);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [manualKey, setManualKey] = useState('');
 
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio) {
         const selected = await window.aistudio.hasSelectedApiKey();
         setHasKey(selected);
+      } else {
+        const stored = localStorage.getItem('GEMINI_API_KEY_MANUAL');
+        setHasKey(!!stored);
+        if (stored) setManualKey(stored);
       }
     };
     checkKey();
-    // Check periodically or on focus
     const interval = setInterval(checkKey, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -98,6 +103,19 @@ export default function App() {
       await window.aistudio.openSelectKey();
       const selected = await window.aistudio.hasSelectedApiKey();
       setHasKey(selected);
+    } else {
+      setShowKeyModal(true);
+    }
+  };
+
+  const saveManualKey = () => {
+    if (manualKey.trim()) {
+      localStorage.setItem('GEMINI_API_KEY_MANUAL', manualKey.trim());
+      setHasKey(true);
+      setShowKeyModal(false);
+      toast.success("API Key berhasil disimpan!");
+    } else {
+      toast.error("Masukkan API Key yang valid.");
     }
   };
 
@@ -124,13 +142,19 @@ export default function App() {
   };
 
   const handleGenerateMusic = async () => {
-    // Check for API Key if using Lyria
+    // Check for API Key
     if (window.aistudio) {
       const hasKey = await window.aistudio.hasSelectedApiKey();
       if (!hasKey) {
         toast.info("Lyria AI (Musik) memerlukan API Key dengan billing aktif. Silakan pilih key Anda.");
         await window.aistudio.openSelectKey();
-        // Proceeding assuming success as per guidelines
+      }
+    } else {
+      const stored = localStorage.getItem('GEMINI_API_KEY_MANUAL');
+      if (!stored) {
+        toast.info("Silakan masukkan API Key Anda terlebih dahulu.");
+        setShowKeyModal(true);
+        return;
       }
     }
 
@@ -673,6 +697,64 @@ export default function App() {
       <footer className="relative z-10 py-12 text-center border-t border-white/5 mt-12">
         <p className="text-[10px] text-white/20 uppercase tracking-[0.5em]">Powered by Google Gemini & Lyria AI</p>
       </footer>
+
+      {/* Manual API Key Modal */}
+      <AnimatePresence>
+        {showKeyModal && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowKeyModal(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200]"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md glass-panel p-8 z-[201] space-y-6"
+            >
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold">Set Gemini API Key</h3>
+                <p className="text-xs text-white/40">
+                  Masukkan API Key Anda untuk menggunakan fitur produksi musik di luar AI Studio.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase tracking-widest font-bold text-white/40">API Key</label>
+                  <input 
+                    type="password"
+                    placeholder="AIzaSy..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-brand-orange transition-colors"
+                    value={manualKey}
+                    onChange={e => setManualKey(e.target.value)}
+                  />
+                </div>
+                <p className="text-[9px] text-white/30 leading-relaxed">
+                  Dapatkan API Key di <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-brand-orange underline">Google AI Studio</a>. Pastikan akun Anda memiliki akses ke model Lyria.
+                </p>
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    onClick={() => setShowKeyModal(false)}
+                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    onClick={saveManualKey}
+                    className="flex-1 py-3 bg-brand-orange hover:bg-brand-orange/90 rounded-xl text-sm font-bold transition-all"
+                  >
+                    Simpan Key
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <style>{`
         @keyframes spin-slow {
