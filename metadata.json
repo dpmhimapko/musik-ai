@@ -1,0 +1,5 @@
+{
+  "name": "Melodia AI - Studio Musik AI Lengkap",
+  "description": "Generator lagu AI lengkap: dari ide ke lirik, hingga menjadi lagu utuh dengan vokal dan musik.",
+  "requestFramePermissions": ["microphone"]
+}
