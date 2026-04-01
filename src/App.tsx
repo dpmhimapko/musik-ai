@@ -81,6 +81,7 @@ export default function App() {
   const [hasKey, setHasKey] = useState(false);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [manualKey, setManualKey] = useState('');
+  const [isTestingKey, setIsTestingKey] = useState(false);
 
   useEffect(() => {
     const checkKey = async () => {
@@ -119,6 +120,27 @@ export default function App() {
     }
   };
 
+  const testManualKey = async () => {
+    if (!manualKey.trim()) {
+      toast.error("Masukkan API Key terlebih dahulu.");
+      return;
+    }
+    setIsTestingKey(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: manualKey.trim() });
+      await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: "Hi",
+      });
+      toast.success("API Key valid dan terkoneksi!");
+    } catch (err: any) {
+      console.error("Key Test Error:", err);
+      toast.error(`Key tidak valid: ${err?.message || "Periksa kembali key Anda."}`);
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
+
   const updateData = (updates: Partial<SongData>) => {
     setSongData(prev => ({ ...prev, ...updates }));
   };
@@ -134,8 +156,9 @@ export default function App() {
       const lyrics = await generateLyrics(songData);
       updateData({ lyrics });
       setStep(2);
-    } catch (err) {
-      toast.error("Gagal generate lirik. Coba lagi.");
+    } catch (err: any) {
+      console.error("Lyrics Generation Error:", err);
+      toast.error(`Gagal generate lirik: ${err?.message || "Coba lagi."}`);
     } finally {
       setIsGenerating(false);
     }
@@ -165,8 +188,17 @@ export default function App() {
       updateData(finalData);
       setHistory(prev => [finalData, ...prev]);
       setStep(4);
-    } catch (err) {
-      toast.error("Gagal generate musik. Pastikan API Key valid.");
+    } catch (err: any) {
+      console.error("Music Generation Error:", err);
+      const errorMsg = err?.message || "Terjadi kesalahan yang tidak diketahui.";
+      
+      if (errorMsg.includes("API_KEY_INVALID") || errorMsg.includes("invalid API key")) {
+        toast.error("API Key tidak valid. Silakan periksa kembali di menu Set API Key.");
+      } else if (errorMsg.includes("billing") || errorMsg.includes("quota")) {
+        toast.error("Masalah Billing/Kuota: Pastikan API Key Anda berasal dari proyek Google Cloud dengan billing aktif.");
+      } else {
+        toast.error(`Gagal: ${errorMsg}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -738,10 +770,12 @@ export default function App() {
                 </p>
                 <div className="flex gap-3 pt-2">
                   <button 
-                    onClick={() => setShowKeyModal(false)}
-                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-all"
+                    onClick={testManualKey}
+                    disabled={isTestingKey}
+                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2"
                   >
-                    Batal
+                    {isTestingKey ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    <span>Tes Koneksi</span>
                   </button>
                   <button 
                     onClick={saveManualKey}

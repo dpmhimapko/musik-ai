@@ -2,11 +2,25 @@ import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
 import { SongData } from "../types";
 
 const getAI = () => {
-  // Try to get from localStorage first (for manual entry fallback)
-  const manualKey = typeof window !== 'undefined' ? localStorage.getItem('GEMINI_API_KEY_MANUAL') : null;
-  const apiKey = manualKey || process.env.GEMINI_API_KEY;
+  let apiKey = '';
   
-  if (!apiKey) throw new Error("GEMINI_API_KEY is missing");
+  if (typeof window !== 'undefined') {
+    const manualKey = localStorage.getItem('GEMINI_API_KEY_MANUAL');
+    if (manualKey) {
+      apiKey = manualKey;
+      console.log("Using manual API Key from localStorage");
+    }
+  }
+  
+  if (!apiKey) {
+    apiKey = process.env.GEMINI_API_KEY || '';
+    if (apiKey) console.log("Using API Key from environment variables");
+  }
+  
+  if (!apiKey) {
+    throw new Error("API Key belum disetel. Silakan klik tombol 'Set API Key' di pojok kanan atas.");
+  }
+  
   return new GoogleGenAI({ apiKey });
 };
 
